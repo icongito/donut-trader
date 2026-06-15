@@ -54,6 +54,10 @@ last_seen_ms: int = 0
 current_day: str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 last_heartbeat: float = 0.0
 
+# Personal daily sales tracking
+my_sales_total: float = 0.0
+my_sales_count: int = 0
+
 
 def _headers() -> dict:
     h = {"Accept": "application/json", "User-Agent": "DonutSMP-PriceBot/1.0"}
@@ -111,27 +115,6 @@ def send_new_low_alert(price, seller, label, sold_at, emoji, color, thumb):
     webhook.execute()
 
 
-def send_my_sale_alert(item_name: str, unit_price: float, count: int, total: float, sold_at: str):
-    log.info("MY SALE: %s x%d — %.2f/unit — %.2f total — %s", item_name, count, unit_price, total, sold_at)
-    if not DISCORD_URL:
-        return
-    webhook = DiscordWebhook(url=DISCORD_URL, username="Donut Price Bot")
-    embed = DiscordEmbed(
-        title="💰 Your Sale Went Through!",
-        description=(
-            f"**{item_name}**\n\n"
-            f"📦 Quantity: **{count}**\n"
-            f"💵 Price/unit: **{unit_price:,.2f} coins**\n"
-            f"🏦 Total earned: **{total:,.2f} coins**\n"
-            f"🕐 Sold at: `{sold_at}`"
-        ),
-        color="1ABC9C",
-    )
-    embed.set_timestamp()
-    webhook.add_embed(embed)
-    webhook.execute()
-
-
 def send_daily_summary():
     log.info("Sending daily summary...")
     if not DISCORD_URL:
@@ -164,16 +147,28 @@ def send_daily_summary():
     if not has_data:
         embed.add_embed_field(name="No data", value="No tracked sales recorded today.", inline=False)
 
+    if MY_USERNAME:
+        embed.add_embed_field(
+            name=f"💰 Your Sales ({MY_USERNAME})",
+            value=(
+                f"Transactions: **{my_sales_count}**\n"
+                f"Total earned: **{my_sales_total:,.2f} coins**"
+            ) if my_sales_count > 0 else "No sales today.",
+            inline=False,
+        )
+
     embed.set_timestamp()
     webhook.add_embed(embed)
     webhook.execute()
 
 
 def reset_daily():
-    global current_day
+    global current_day, my_sales_total, my_sales_count
     for kw in daily_low:
         daily_low[kw] = None
         daily_low_record[kw] = None
+    my_sales_total = 0.0
+    my_sales_count = 0
     current_day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     log.info("Daily stats reset for %s.", current_day)
 
@@ -212,17 +207,13 @@ def poll():
                 if ms > new_max_ms:
                     new_max_ms = ms
 
-                # Personal sale tracking
+                # Personal sale tracking — accumulate for daily summary
                 if MY_USERNAME and tx.get("seller", {}).get("name", "").lower() == MY_USERNAME:
                     total_price = float(tx.get("price", 0))
-                    count       = max(1, int(tx.get("item", {}).get("count", 1)))
                     item_name   = tx.get("item", {}).get("display_name") or tx.get("item", {}).get("id", "Unknown")
-                    ms_sold     = tx.get("unixMillisDateSold", 0)
-                    sold_at     = (
-                        datetime.fromtimestamp(ms_sold / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-                        if ms_sold else "unknown"
-                    )
-                    send_my_sale_alert(item_name, total_price / count, count, total_price, sold_at)
+                    my_sales_total += total_price
+                    my_sales_count += 1
+                    log.info("MY SALE: %s — %.2f total (day total: %.2f)", item_name, total_price, my_sales_total)
 
                 match = _match_item(tx)
                 if match:

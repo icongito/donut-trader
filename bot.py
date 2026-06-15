@@ -7,6 +7,7 @@ sells for a new all-time high price.
 import json
 import logging
 import os
+import random
 import sys
 import time
 from datetime import datetime, timezone
@@ -20,7 +21,8 @@ load_dotenv()
 API_BASE        = "https://api.donutsmp.net"
 API_KEY         = os.getenv("API_KEY", "")          # /api in-game to generate
 DISCORD_URL     = os.getenv("DISCORD_WEBHOOK_URL", "")
-POLL_SECONDS    = int(os.getenv("POLL_SECONDS", "60"))   # how often to poll
+POLL_MIN        = int(os.getenv("POLL_MIN_SECONDS", "5"))   # minimum poll interval
+POLL_MAX        = int(os.getenv("POLL_MAX_SECONDS", "10"))  # maximum poll interval
 
 logging.basicConfig(
     level=logging.INFO,
@@ -154,7 +156,7 @@ def main():
     if not DISCORD_URL:
         log.warning("DISCORD_WEBHOOK_URL is not set. Alerts will only appear in the log.")
 
-    log.info("Totem tracker started. Polling every %ds.", POLL_SECONDS)
+    log.info("Totem tracker started. Polling every %d-%ds.", POLL_MIN, POLL_MAX)
     log.info("Current highest known price: %.2f", highest_price)
 
     while True:
@@ -162,7 +164,9 @@ def main():
             poll()
         except Exception as e:
             log.exception("Unexpected error during poll: %s", e)
-        time.sleep(POLL_SECONDS)
+        wait = random.randint(POLL_MIN, POLL_MAX)
+        log.debug("Next poll in %ds.", wait)
+        time.sleep(wait)
 
 
 if __name__ == "__main__":

@@ -25,11 +25,12 @@ POLL_MIN    = int(os.getenv("POLL_MIN_SECONDS", "5"))
 POLL_MAX    = int(os.getenv("POLL_MAX_SECONDS", "10"))
 
 # Each entry: (keyword to match in item id/display_name, label, discord emoji)
+_MC = "https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/1.20.4/assets/minecraft/textures"
 TRACKED_ITEMS = [
     # (keyword, label, emoji, embed color, thumbnail url)
-    ("totem",         "Totem of Undying", "🛡️", "3498DB", "https://minecraft.wiki/images/Totem_of_Undying_JE2_BE2.png"),
-    ("emerald_block", "Emerald Block",    "💚",  "2ECC71", "https://minecraft.wiki/images/Emerald_Block_JE4_BE3.png"),
-    ("gold_block",    "Gold Block",       "🟡",  "F1C40F", "https://minecraft.wiki/images/Block_of_Gold_JE6_BE3.png"),
+    ("totem",         "Totem of Undying", "🛡️", "3498DB", f"{_MC}/item/totem_of_undying.png"),
+    ("emerald_block", "Emerald Block",    "💚",  "2ECC71", f"{_MC}/block/emerald_block.png"),
+    ("gold_block",    "Gold Block",       "🟡",  "F1C40F", f"{_MC}/block/gold_block.png"),
 ]
 
 logging.basicConfig(

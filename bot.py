@@ -29,7 +29,7 @@ _WIKI = "https://minecraft.wiki/images"
 TRACKED_ITEMS = [
     # (keyword, label, emoji, embed color, thumbnail url)
     ("totem",         "Totem of Undying", "🛡️", "3498DB", os.getenv("THUMB_TOTEM",         f"{_WIKI}/Totem_of_Undying_JE2_BE2.png")),
-    ("emerald_block", "Emerald Block",    "💚",  "2ECC71", os.getenv("THUMB_EMERALD_BLOCK",  f"{_WIKI}/Block_of_Emerald_JE4_BE3.png")),
+    ("emerald_block", "Emerald Block",    "💚",  "2ECC71", os.getenv("THUMB_EMERALD_BLOCK",  f"{_WIKI}/Block_of_Emerald_JE4_BE3.png?d5a3c")),
     ("gold_block",    "Gold Block",       "🟡",  "F1C40F", os.getenv("THUMB_GOLD_BLOCK",     f"{_WIKI}/Block_of_Gold_JE6_BE3.png")),
 ]
 

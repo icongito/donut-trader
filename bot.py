@@ -48,7 +48,8 @@ daily_low: dict = {kw: None for kw, _, _, _, _ in TRACKED_ITEMS}
 # Keeps the record of that low: { keyword -> (price, time, seller) | None }
 daily_low_record: dict = {kw: None for kw, _, _, _, _ in TRACKED_ITEMS}
 
-seen_tx_ids: set = set()
+# Timestamp (ms) of the most recently processed transaction — used to skip already-seen ones
+last_seen_ms: int = 0
 current_day: str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 last_heartbeat: float = 0.0
 
@@ -58,13 +59,6 @@ def _headers() -> dict:
     if API_KEY:
         h["Authorization"] = f"Bearer {API_KEY}"
     return h
-
-
-def _tx_id(tx: dict) -> str:
-    seller_uuid = tx.get("seller", {}).get("uuid", "")
-    ms = tx.get("unixMillisDateSold", 0)
-    price = tx.get("price", 0)
-    return f"{seller_uuid}:{ms}:{price}"
 
 
 def _match_item(tx: dict):
@@ -170,42 +164,42 @@ def check_day_rollover():
 
 
 def poll():
-    global last_heartbeat
+    global last_heartbeat, last_seen_ms
     check_day_rollover()
 
     # Heartbeat every 60s so you can confirm the bot is alive in the log
     now = time.time()
     if now - last_heartbeat >= 60:
         lows = {kw: f"{v:,.0f}" if v else "—" for kw, *_ in TRACKED_ITEMS for v in [daily_low.get(kw)]}
-        log.info("♥ heartbeat | daily lows so far: %s | seen tx: %d", lows, len(seen_tx_ids))
+        log.info("♥ heartbeat | daily lows: %s | last_seen_ms: %d", lows, last_seen_ms)
         last_heartbeat = now
 
-    # Keep seen_tx_ids from growing forever — only need last 5000 entries
-    if len(seen_tx_ids) > 5000:
-        seen_tx_ids.clear()
-        log.info("seen_tx_ids cleared (size limit).")
-
     new_txs = []
+    new_max_ms = last_seen_ms
 
     for page in range(1, 11):
         txs = fetch_transactions(page)
         if not txs:
             break
 
-        found_new = False
+        page_had_new = False
         for tx in txs:
-            tid = _tx_id(tx)
-            if tid not in seen_tx_ids:
-                found_new = True
-                seen_tx_ids.add(tid)
+            ms = tx.get("unixMillisDateSold", 0)
+            if ms > last_seen_ms:
+                page_had_new = True
+                if ms > new_max_ms:
+                    new_max_ms = ms
                 match = _match_item(tx)
                 if match:
                     new_txs.append((tx, *match))
 
-        if not found_new:
+        # Transactions are newest-first — once a whole page is old, stop
+        if not page_had_new:
             break
 
         time.sleep(0.2)
+
+    last_seen_ms = new_max_ms
 
     if not new_txs:
         return

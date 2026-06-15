@@ -60,7 +60,7 @@ def _tx_id(tx: dict) -> str:
     return f"{seller_uuid}:{ms}:{price}"
 
 
-def _match_item(tx: dict) -> tuple[str, str, str] | None:
+def _match_item(tx: dict):
     """Return (keyword, label, emoji) if this tx matches a tracked item, else None."""
     item = tx.get("item", {})
     item_id   = str(item.get("id", "")).lower()
@@ -110,7 +110,7 @@ def send_alert(price: float, seller: str, item_name: str, sold_at: str, emoji: s
 
 
 def poll():
-    new_txs: list[tuple[dict, str, str, str]] = []  # (tx, keyword, label, emoji)
+    new_txs = []  # (tx, keyword, label, emoji)
 
     for page in range(1, 11):
         txs = fetch_transactions(page)

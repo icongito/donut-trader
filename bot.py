@@ -211,7 +211,12 @@ def poll():
         log.info("%s sale: %.2f coins — %s — %s", label, price, seller, sold_at)
 
         current_low = daily_low[keyword]
-        if current_low is None or price < current_low:
+        if current_low is None:
+            # First sale of the day — record silently, no alert yet
+            daily_low[keyword] = price
+            daily_low_record[keyword] = (price, sold_at, seller)
+            log.info("%s baseline set: %.2f coins (no alert for first sale)", label, price)
+        elif price < current_low:
             daily_low[keyword] = price
             daily_low_record[keyword] = (price, sold_at, seller)
             send_new_low_alert(price, seller, label, sold_at, emoji, color, thumb)

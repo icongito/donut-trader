@@ -26,9 +26,9 @@ POLL_MAX    = int(os.getenv("POLL_MAX_SECONDS", "10"))
 
 # Each entry: (keyword to match in item id/display_name, label, discord emoji)
 TRACKED_ITEMS = [
-    ("totem",          "Totem of Undying", "🛡️"),
-    ("emerald_block",  "Emerald Block",    "💚"),
-    ("gold_block",     "Gold Block",       "🟡"),
+    ("totem",         "Totem of Undying", "🛡️", "3498DB"),  # blue
+    ("emerald_block", "Emerald Block",    "💚",  "2ECC71"),  # green
+    ("gold_block",    "Gold Block",       "🟡",  "F1C40F"),  # gold
 ]
 
 logging.basicConfig(
@@ -42,7 +42,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # Per-item highest price: { keyword -> float }
-highest: dict[str, float] = {kw: 0.0 for kw, _, _ in TRACKED_ITEMS}
+highest: dict = {kw: 0.0 for kw, _, _, _ in TRACKED_ITEMS}
 seen_tx_ids: set[str] = set()
 
 
@@ -61,13 +61,13 @@ def _tx_id(tx: dict) -> str:
 
 
 def _match_item(tx: dict):
-    """Return (keyword, label, emoji) if this tx matches a tracked item, else None."""
+    """Return (keyword, label, emoji, color) if this tx matches a tracked item, else None."""
     item = tx.get("item", {})
     item_id   = str(item.get("id", "")).lower()
     disp_name = str(item.get("display_name", "")).lower()
-    for keyword, label, emoji in TRACKED_ITEMS:
+    for keyword, label, emoji, color in TRACKED_ITEMS:
         if keyword in item_id or keyword in disp_name:
-            return keyword, label, emoji
+            return keyword, label, emoji, color
     return None
 
 
@@ -89,7 +89,7 @@ def fetch_transactions(page: int) -> list[dict]:
     return []
 
 
-def send_alert(price: float, seller: str, item_name: str, sold_at: str, emoji: str):
+def send_alert(price: float, seller: str, item_name: str, sold_at: str, emoji: str, color: str):
     log.info("NEW HIGH: %s — %.2f coins — %s — %s", item_name, price, seller, sold_at)
     if not DISCORD_URL:
         return
@@ -102,7 +102,7 @@ def send_alert(price: float, seller: str, item_name: str, sold_at: str, emoji: s
             f"👤 Seller: `{seller}`\n"
             f"🕐 Sold at: `{sold_at}`"
         ),
-        color="FFD700",
+        color=color,
     )
     embed.set_timestamp()
     webhook.add_embed(embed)
@@ -138,12 +138,11 @@ def poll():
 
     log.info("Found %d new tracked transaction(s).", len(new_txs))
 
-    for tx, keyword, label, emoji in new_txs:
-        price     = float(tx.get("price", 0))
-        seller    = tx.get("seller", {}).get("name", "unknown")
-        item_name = tx["item"].get("display_name") or tx["item"].get("id", label)
-        ms_sold   = tx.get("unixMillisDateSold", 0)
-        sold_at   = (
+    for tx, keyword, label, emoji, color in new_txs:
+        price   = float(tx.get("price", 0))
+        seller  = tx.get("seller", {}).get("name", "unknown")
+        ms_sold = tx.get("unixMillisDateSold", 0)
+        sold_at = (
             datetime.fromtimestamp(ms_sold / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
             if ms_sold else "unknown"
         )
@@ -152,7 +151,7 @@ def poll():
 
         if price > highest[keyword]:
             highest[keyword] = price
-            send_alert(price, seller, item_name, sold_at, emoji)
+            send_alert(price, seller, label, sold_at, emoji, color)
 
 
 def main():
@@ -161,7 +160,7 @@ def main():
     if not DISCORD_URL:
         log.warning("DISCORD_WEBHOOK_URL not set — alerts will only appear in the log.")
 
-    log.info("Price tracker started. Tracking: %s", ", ".join(l for _, l, _ in TRACKED_ITEMS))
+    log.info("Price tracker started. Tracking: %s", ", ".join(l for _, l, _, _ in TRACKED_ITEMS))
     log.info("Polling every %d-%ds.", POLL_MIN, POLL_MAX)
 
     while True:

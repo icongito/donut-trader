@@ -21,7 +21,8 @@ load_dotenv()
 
 API_BASE    = "https://api.donutsmp.net"
 API_KEY     = os.getenv("API_KEY", "")
-DISCORD_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+DISCORD_URL  = os.getenv("DISCORD_WEBHOOK_URL", "")
+MY_USERNAME  = os.getenv("MY_USERNAME", "").lower()  # your IGN to track personal sales
 POLL_MIN    = int(os.getenv("POLL_MIN_SECONDS", "1"))
 POLL_MAX    = int(os.getenv("POLL_MAX_SECONDS", "3"))
 
@@ -110,6 +111,27 @@ def send_new_low_alert(price, seller, label, sold_at, emoji, color, thumb):
     webhook.execute()
 
 
+def send_my_sale_alert(item_name: str, unit_price: float, count: int, total: float, sold_at: str):
+    log.info("MY SALE: %s x%d — %.2f/unit — %.2f total — %s", item_name, count, unit_price, total, sold_at)
+    if not DISCORD_URL:
+        return
+    webhook = DiscordWebhook(url=DISCORD_URL, username="Donut Price Bot")
+    embed = DiscordEmbed(
+        title="💰 Your Sale Went Through!",
+        description=(
+            f"**{item_name}**\n\n"
+            f"📦 Quantity: **{count}**\n"
+            f"💵 Price/unit: **{unit_price:,.2f} coins**\n"
+            f"🏦 Total earned: **{total:,.2f} coins**\n"
+            f"🕐 Sold at: `{sold_at}`"
+        ),
+        color="1ABC9C",
+    )
+    embed.set_timestamp()
+    webhook.add_embed(embed)
+    webhook.execute()
+
+
 def send_daily_summary():
     log.info("Sending daily summary...")
     if not DISCORD_URL:
@@ -189,6 +211,19 @@ def poll():
                 page_had_new = True
                 if ms > new_max_ms:
                     new_max_ms = ms
+
+                # Personal sale tracking
+                if MY_USERNAME and tx.get("seller", {}).get("name", "").lower() == MY_USERNAME:
+                    total_price = float(tx.get("price", 0))
+                    count       = max(1, int(tx.get("item", {}).get("count", 1)))
+                    item_name   = tx.get("item", {}).get("display_name") or tx.get("item", {}).get("id", "Unknown")
+                    ms_sold     = tx.get("unixMillisDateSold", 0)
+                    sold_at     = (
+                        datetime.fromtimestamp(ms_sold / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+                        if ms_sold else "unknown"
+                    )
+                    send_my_sale_alert(item_name, total_price / count, count, total_price, sold_at)
+
                 match = _match_item(tx)
                 if match:
                     new_txs.append((tx, *match))

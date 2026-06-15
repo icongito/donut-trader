@@ -207,7 +207,9 @@ def poll():
     log.info("Found %d new tracked transaction(s).", len(new_txs))
 
     for tx, keyword, label, emoji, color, thumb in new_txs:
-        price   = float(tx.get("price", 0))
+        total_price = float(tx.get("price", 0))
+        count       = max(1, int(tx.get("item", {}).get("count", 1)))
+        price       = total_price / count   # per-unit price
         seller  = tx.get("seller", {}).get("name", "unknown")
         ms_sold = tx.get("unixMillisDateSold", 0)
         sold_at = (
@@ -215,7 +217,7 @@ def poll():
             if ms_sold else "unknown"
         )
 
-        log.info("%s sale: %.2f coins — %s — %s", label, price, seller, sold_at)
+        log.info("%s sale: %.2f coins/unit (x%d total %.2f) — %s — %s", label, price, count, total_price, seller, sold_at)
 
         current_low = daily_low[keyword]
         if current_low is None:

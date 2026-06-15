@@ -22,8 +22,8 @@ load_dotenv()
 API_BASE    = "https://api.donutsmp.net"
 API_KEY     = os.getenv("API_KEY", "")
 DISCORD_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
-POLL_MIN    = int(os.getenv("POLL_MIN_SECONDS", "5"))
-POLL_MAX    = int(os.getenv("POLL_MAX_SECONDS", "10"))
+POLL_MIN    = int(os.getenv("POLL_MIN_SECONDS", "1"))
+POLL_MAX    = int(os.getenv("POLL_MAX_SECONDS", "3"))
 
 _WIKI = "https://minecraft.wiki/images"
 TRACKED_ITEMS = [
@@ -50,6 +50,7 @@ daily_low_record: dict = {kw: None for kw, _, _, _, _ in TRACKED_ITEMS}
 
 seen_tx_ids: set = set()
 current_day: str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+last_heartbeat: float = 0.0
 
 
 def _headers() -> dict:
@@ -169,7 +170,20 @@ def check_day_rollover():
 
 
 def poll():
+    global last_heartbeat
     check_day_rollover()
+
+    # Heartbeat every 60s so you can confirm the bot is alive in the log
+    now = time.time()
+    if now - last_heartbeat >= 60:
+        lows = {kw: f"{v:,.0f}" if v else "—" for kw, *_ in TRACKED_ITEMS for v in [daily_low.get(kw)]}
+        log.info("♥ heartbeat | daily lows so far: %s | seen tx: %d", lows, len(seen_tx_ids))
+        last_heartbeat = now
+
+    # Keep seen_tx_ids from growing forever — only need last 5000 entries
+    if len(seen_tx_ids) > 5000:
+        seen_tx_ids.clear()
+        log.info("seen_tx_ids cleared (size limit).")
 
     new_txs = []
 
@@ -194,7 +208,6 @@ def poll():
         time.sleep(0.2)
 
     if not new_txs:
-        log.info("Poll complete — no new tracked sales.")
         return
 
     log.info("Found %d new tracked transaction(s).", len(new_txs))

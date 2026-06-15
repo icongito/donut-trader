@@ -28,6 +28,7 @@ POLL_MAX    = int(os.getenv("POLL_MAX_SECONDS", "10"))
 TRACKED_ITEMS = [
     ("totem",          "Totem of Undying", "🛡️"),
     ("emerald_block",  "Emerald Block",    "💚"),
+    ("gold_block",     "Gold Block",       "🟡"),
 ]
 
 logging.basicConfig(

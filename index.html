@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donut SMP — Trade Logger</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3a;
+      --accent:   #f97316;
+      --green:    #22c55e;
+      --red:      #ef4444;
+      --muted:    #6b7280;
+      --text:     #e5e7eb;
+      --subtext:  #9ca3af;
+      --radius:   10px;
+      --font:     'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo { font-size: 2rem; }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header p  { font-size: .85rem; color: var(--subtext); margin-top: 2px; }
+
+    main { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+    /* Summary cards */
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .card .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 8px; }
+    .card .value { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .card.profit .value { color: var(--green); }
+    .card.loss   .value { color: var(--red); }
+    .card.net    .value { color: var(--accent); }
+
+    /* Input form */
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+    }
+    .form-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: .75rem; color: var(--subtext); text-transform: uppercase; letter-spacing: .05em; }
+    .field input, .field select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: .9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field.grow { flex: 1; min-width: 120px; }
+    .field.sm input { width: 100px; }
+    .field.xs input { width: 80px; }
+    .btn {
+      align-self: flex-end;
+      padding: 9px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-log { background: var(--accent); color: #fff; }
+    .btn-clear { background: var(--border); color: var(--subtext); font-size: .8rem; padding: 9px 14px; }
+    .parse-hint { margin-top: 10px; font-size: .82rem; color: var(--subtext); }
+    .parse-hint strong { color: var(--text); }
+
+    /* Tables */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header h2 { font-size: 1rem; font-weight: 600; }
+    .badge { background: var(--border); color: var(--subtext); font-size: .75rem; padding: 2px 8px; border-radius: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    thead { background: rgba(255,255,255,.03); }
+    th { padding: 10px 16px; text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+    td { padding: 11px 16px; border-top: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .tag-buy  { background: rgba(34,197,94,.15);  color: var(--green); }
+    .tag-sell { background: rgba(239,68,68,.15);   color: var(--red); }
+    .profit-pos { color: var(--green); font-weight: 600; }
+    .profit-neg { color: var(--red);   font-weight: 600; }
+    .empty { padding: 32px 20px; text-align: center; color: var(--muted); font-size: .875rem; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    @media (max-width: 700px) {
+      .cards { grid-template-columns: 1fr; }
+      .two-col { grid-template-columns: 1fr; }
+      .form-row { flex-direction: column; }
+      .field.sm input, .field.xs input { width: 100%; }
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 12px 18px; border-radius: var(--radius);
+      font-size: .875rem; transform: translateY(80px); opacity: 0;
+      transition: all .25s ease; z-index: 99; pointer-events: none;
+      max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🍩</span>
+  <div>
+    <h1>Donut SMP — Trade Logger</h1>
+    <p>Track your auction-house flips &amp; profit/loss locally</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Summary -->
+  <div class="cards">
+    <div class="card profit">
+      <div class="label">Total Profit</div>
+      <div class="value" id="totalProfit">0</div>
+    </div>
+    <div class="card loss">
+      <div class="label">Total Loss</div>
+      <div class="value" id="totalLoss">0</div>
+    </div>
+    <div class="card net">
+      <div class="label">Net P&amp;L</div>
+      <div class="value" id="netPnl">0</div>
+    </div>
+  </div>
+
+  <!-- Log form -->
+  <div class="form-card">
+    <h2>Log a Trade</h2>
+    <div class="form-row">
+      <div class="field">
+        <label>Action</label>
+        <select id="action">
+          <option value="BUY">BUY</option>
+          <option value="SELL">SELL</option>
+        </select>
+      </div>
+      <div class="field sm">
+        <label>Qty</label>
+        <input type="number" id="qty" placeholder="5" min="0.01" step="any">
+      </div>
+      <div class="field grow">
+        <label>Item</label>
+        <input type="text" id="item" placeholder="Spawner" autocomplete="off">
+      </div>
+      <div class="field xs">
+        <label>Price each</label>
+        <input type="number" id="price" placeholder="64" min="0" step="any">
+      </div>
+      <button class="btn btn-log" onclick="logTrade()">Log</button>
+      <button class="btn btn-clear" onclick="clearAll()">Clear all</button>
+    </div>
+    <p class="parse-hint" id="hint"></p>
+  </div>
+
+  <!-- Trade history + Inventory -->
+  <div class="two-col">
+
+    <div class="table-card">
+      <div class="table-header">
+        <h2>Trade History</h2>
+        <span class="badge" id="tradeCount">0 trades</span>
+      </div>
+      <div id="tradeTableWrap">
+        <p class="empty">No trades yet — log one above.</p>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h2>Inventory</h2>
+        <span class="badge" id="invCount">0 items</span>
+      </div>
+      <div id="invTableWrap">
+        <p class="empty">Nothing held yet.</p>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+  // ── Storage ─────────────────────────────────────────────────────────────────
+  const KEY_TRADES = 'dst_trades';
+  const KEY_INV    = 'dst_inv';
+
+  function load(key) { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } }
+  function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+  let trades    = load(KEY_TRADES);   // [{date,action,item,qty,price,total,profit}]
+  let inventory = load(KEY_INV);      // [{item,qty,avgCost}]
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function fmt(n) {
+    return Math.round(n).toLocaleString();
+  }
+  function fmtDec(n) {
+    return (+n).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  function now() {
+    return new Date().toLocaleString(undefined, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+  }
+  function singularize(phrase) {
+    const words = phrase.trim().split(/\s+/);
+    const last  = words[words.length - 1].toLowerCase();
+    let sg;
+    if (last.endsWith('ies') && last.length > 4) sg = last.slice(0, -3) + 'y';
+    else if (last.endsWith('s') && !last.endsWith('ss')) sg = last.slice(0, -1);
+    else sg = last;
+    words[words.length - 1] = sg;
+    return words.map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+  }
+  function toast(msg, ms = 3000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  // ── Core logic ───────────────────────────────────────────────────────────────
+  function logTrade() {
+    const action = document.getElementById('action').value;
+    const rawItem = document.getElementById('item').value.trim();
+    const qty   = parseFloat(document.getElementById('qty').value);
+    const price = parseFloat(document.getElementById('price').value);
+
+    if (!rawItem || isNaN(qty) || qty <= 0 || isNaN(price) || price < 0) {
+      document.getElementById('hint').textContent = '⚠ Fill in item, qty, and price.';
+      return;
+    }
+    document.getElementById('hint').textContent = '';
+
+    const item  = singularize(rawItem);
+    const total = qty * price;
+    let profit  = null;
+
+    // Find inventory entry
+    let invIdx = inventory.findIndex(r => r.item.toLowerCase() === item.toLowerCase());
+    let heldQty = invIdx >= 0 ? inventory[invIdx].qty : 0;
+    let avgCost = invIdx >= 0 ? inventory[invIdx].avgCost : 0;
+
+    if (action === 'BUY') {
+      const newQty = heldQty + qty;
+      const newAvg = (heldQty * avgCost + qty * price) / newQty;
+      if (invIdx >= 0) { inventory[invIdx].qty = newQty; inventory[invIdx].avgCost = newAvg; }
+      else inventory.push({ item, qty: newQty, avgCost: newAvg });
+    } else {
+      profit = (price - avgCost) * qty;
+      const newQty = Math.max(0, heldQty - qty);
+      if (invIdx >= 0) { inventory[invIdx].qty = newQty; }
+      else inventory.push({ item, qty: 0, avgCost: 0 });
+    }
+
+    trades.unshift({ date: now(), action, item, qty, price, total, profit });
+    save(KEY_TRADES, trades);
+    save(KEY_INV, inventory);
+
+    // Clear fields
+    ['qty','item','price'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('item').focus();
+
+    const msg = action === 'BUY'
+      ? `✅ Bought ${qty} ${item} @ ${fmtDec(price)} (total ${fmt(total)})`
+      : `✅ Sold ${qty} ${item} @ ${fmtDec(price)} → ${profit >= 0 ? '+' : ''}${fmt(profit)} profit`;
+    toast(msg);
+    render();
+  }
+
+  function clearAll() {
+    if (!confirm('Delete ALL trades and inventory? This cannot be undone.')) return;
+    trades = []; inventory = [];
+    save(KEY_TRADES, trades); save(KEY_INV, inventory);
+    render();
+    toast('All data cleared.');
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+  function render() {
+    renderSummary();
+    renderTrades();
+    renderInventory();
+  }
+
+  function renderSummary() {
+    let gain = 0, loss = 0;
+    trades.forEach(t => {
+      const p = t.profit ?? 0;
+      if (p > 0) gain += p;
+      else if (p < 0) loss += p;
+    });
+    const net = gain + loss;
+    document.getElementById('totalProfit').textContent = fmt(gain);
+    document.getElementById('totalLoss').textContent   = fmt(loss);
+    document.getElementById('netPnl').textContent      = (net >= 0 ? '+' : '') + fmt(net);
+    document.getElementById('netPnl').style.color      = net >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  function renderTrades() {
+    const wrap = document.getElementById('tradeTableWrap');
+    document.getElementById('tradeCount').textContent = trades.length + ' trade' + (trades.length !== 1 ? 's' : '');
+    if (!trades.length) { wrap.innerHTML = '<p class="empty">No trades yet — log one above.</p>'; return; }
+
+    const rows = trades.slice(0, 200).map(t => {
+      const profitCell = t.profit != null
+        ? `<td class="${t.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${t.profit >= 0 ? '+' : ''}${fmt(t.profit)}</td>`
+        : '<td style="color:var(--muted)">—</td>';
+      return `<tr>
+        <td style="color:var(--subtext);font-size:.8rem">${t.date}</td>
+        <td><span class="tag tag-${t.action.toLowerCase()}">${t.action}</span></td>
+        <td>${t.item}</td>
+        <td>${fmtDec(t.qty)}</td>
+        <td>${fmtDec(t.price)}</td>
+        <td>${fmt(t.total)}</td>
+        ${profitCell}
+      </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Date</th><th>Action</th><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Profit</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  function renderInventory() {
+    const wrap = document.getElementById('invTableWrap');
+    const held = inventory.filter(r => r.qty > 0);
+    document.getElementById('invCount').textContent = held.length + ' item' + (held.length !== 1 ? 's' : '');
+    if (!held.length) { wrap.innerHTML = '<p class="empty">Nothing held yet.</p>'; return; }
+
+    const rows = held.map(r => `<tr>
+      <td>${r.item}</td>
+      <td>${fmtDec(r.qty)}</td>
+      <td>${fmtDec(r.avgCost)}</td>
+      <td style="color:var(--subtext)">${fmt(r.qty * r.avgCost)}</td>
+    </tr>`).join('');
+
+    wrap.innerHTML = `<table>
+      <thead><tr><th>Item</th><th>Qty Held</th><th>Avg Cost</th><th>Total Value</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  // ── Keyboard shortcut: Enter to log ──────────────────────────────────────────
+  ['qty','item','price'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') logTrade();
+    });
+  });
+
+  render();
+</script>
+</body>
+</html>

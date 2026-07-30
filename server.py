@@ -1,5 +1,5 @@
 """
-Donut SMP Trade Logger — local server
+Donut SMP Jamble Mod — local server
 Run: python server.py
 Open: http://localhost:5000
 Data stored in trades.db (SQLite) in the same directory.
@@ -197,5 +197,5 @@ def index():
 
 if __name__ == "__main__":
     init_db()
-    print("Trade Logger running → http://localhost:5000")
+    print("Donut SMP Jamble Mod running → http://localhost:5000")
     app.run(debug=False, port=5000)

@@ -1,140 +1,601 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Donut SMP Jamble Mod</title>
+  <title>Jamble Mod — Donut SMP</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    /* ── Tokens ─────────────────────────────────────────────────────────────── */
     :root {
-      --bg:      #0f1117;
-      --surface: #1a1d27;
-      --border:  #2a2d3a;
-      --accent:  #f97316;
-      --green:   #22c55e;
-      --red:     #ef4444;
-      --muted:   #6b7280;
-      --text:    #e5e7eb;
-      --sub:     #9ca3af;
-      --radius:  10px;
-      --font:    'Segoe UI', system-ui, sans-serif;
+      --bg:          #090c12;
+      --bg-grid:     url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40V0h1v40H0zm40 0V0h-1v40h1zM0 0h40v1H0zm0 40h40v-1H0z' fill='%23ffffff' fill-opacity='.025'/%3E%3C/svg%3E");
+      --surface:     #111827;
+      --panel:       #161f30;
+      --border:      #1e293b;
+      --border-hi:   #2d3f5a;
+      --accent:      #00ddb3;
+      --accent-dim:  rgba(0,221,179,.10);
+      --accent-glow: rgba(0,221,179,.22);
+      --profit:      #34d399;
+      --loss:        #f87171;
+      --gold:        #f59e0b;
+      --text:        #e2e8f0;
+      --sub:         #7f8ea3;
+      --muted:       #3d4f66;
+      --tag-buy-bg:  rgba(52,211,153,.13);
+      --tag-sell-bg: rgba(248,113,113,.13);
+      --radius:      4px;
+      --font-data:   'JetBrains Mono','Fira Code','Cascadia Code','Consolas',monospace;
+      --font-ui:     'Segoe UI','SF Pro Text',-apple-system,system-ui,sans-serif;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg:         #f0f4f8;
+        --bg-grid:    url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40V0h1v40H0zm40 0V0h-1v40h1zM0 0h40v1H0zm0 40h40v-1H0z' fill='%23000000' fill-opacity='.04'/%3E%3C/svg%3E");
+        --surface:    #ffffff;
+        --panel:      #f8fafc;
+        --border:     #e2e8f0;
+        --border-hi:  #cbd5e1;
+        --accent:     #00a389;
+        --accent-dim: rgba(0,163,137,.09);
+        --accent-glow:rgba(0,163,137,.18);
+        --profit:     #059669;
+        --loss:       #dc2626;
+        --gold:       #d97706;
+        --text:       #0f172a;
+        --sub:        #64748b;
+        --muted:      #cbd5e1;
+        --tag-buy-bg: rgba(5,150,105,.10);
+        --tag-sell-bg:rgba(220,38,38,.10);
+      }
+    }
+    :root[data-theme="light"] {
+      --bg:         #f0f4f8;
+      --bg-grid:    url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40V0h1v40H0zm40 0V0h-1v40h1zM0 0h40v1H0zm0 40h40v-1H0z' fill='%23000000' fill-opacity='.04'/%3E%3C/svg%3E");
+      --surface:    #ffffff;
+      --panel:      #f8fafc;
+      --border:     #e2e8f0;
+      --border-hi:  #cbd5e1;
+      --accent:     #00a389;
+      --accent-dim: rgba(0,163,137,.09);
+      --accent-glow:rgba(0,163,137,.18);
+      --profit:     #059669;
+      --loss:       #dc2626;
+      --gold:       #d97706;
+      --text:       #0f172a;
+      --sub:        #64748b;
+      --muted:      #cbd5e1;
+      --tag-buy-bg: rgba(5,150,105,.10);
+      --tag-sell-bg:rgba(220,38,38,.10);
     }
 
-    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; padding: 24px 16px; }
-
-    header { max-width: 1100px; margin: 0 auto 32px; display: flex; align-items: center; gap: 14px; }
-    .logo  { font-size: 2rem; }
-    header h1 { font-size: 1.4rem; font-weight: 700; }
-    header p  { font-size: .85rem; color: var(--sub); margin-top: 2px; }
-
-    main { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
-
-    /* Cards */
-    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .card  { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
-    .card .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 8px; }
-    .card .value { font-size: 1.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .card.profit .value { color: var(--green); }
-    .card.loss   .value { color: var(--red); }
-    .card.net    .value { color: var(--accent); }
-
-    /* Form */
-    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
-    .form-card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
-    .form-row  { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-    .field     { display: flex; flex-direction: column; gap: 5px; }
-    .field label { font-size: .75rem; color: var(--sub); text-transform: uppercase; letter-spacing: .05em; }
-    .field input, .field select {
-      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
-      color: var(--text); padding: 8px 10px; font-size: .9rem; font-family: inherit;
-      outline: none; transition: border-color .15s;
+    /* ── Reset ──────────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 14px; }
+    body {
+      background: var(--bg) var(--bg-grid);
+      color: var(--text);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      line-height: 1.5;
     }
-    .field input:focus, .field select:focus { border-color: var(--accent); }
-    .field.grow { flex: 1; min-width: 120px; }
+    button { font-family: inherit; cursor: pointer; }
+    input, select { font-family: inherit; }
+
+    /* ── Header ─────────────────────────────────────────────────────────────── */
+    .header {
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0 28px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .mod-logo {
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+    .mod-wordmark {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .mod-name {
+      font-family: var(--font-data);
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--accent);
+      line-height: 1.1;
+    }
+    .mod-sub {
+      font-size: .68rem;
+      color: var(--sub);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .header-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .status-label {
+      font-size: .72rem;
+      color: var(--sub);
+      letter-spacing: .04em;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .theme-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--sub);
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .85rem;
+      transition: border-color .15s, color .15s;
+    }
+    .theme-btn:hover { border-color: var(--border-hi); color: var(--text); }
+
+    /* Auto Pay Toggle */
+    .autopay-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: none;
+      color: var(--sub);
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: border-color .2s, color .2s, box-shadow .2s, background .2s;
+      user-select: none;
+    }
+    .autopay-pill:hover { border-color: var(--border-hi); }
+    .autopay-pill.on {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .autopay-indicator {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background .2s, box-shadow .2s;
+    }
+    .autopay-pill.on .autopay-indicator {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+    .keycap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px;
+      height: 18px;
+      min-width: 18px;
+      background: var(--panel);
+      border: 1px solid var(--border-hi);
+      border-bottom-width: 2px;
+      border-radius: 3px;
+      font-family: var(--font-data);
+      font-size: .72rem;
+      color: var(--sub);
+      letter-spacing: 0;
+    }
+
+    /* ── Main layout ─────────────────────────────────────────────────────────── */
+    .main {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 28px 24px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Stat cards ──────────────────────────────────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .stat-card.profit::before { background: var(--profit); }
+    .stat-card.loss::before   { background: var(--loss); }
+    .stat-card.net::before    { background: var(--gold); }
+
+    .stat-label {
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      color: var(--sub);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: var(--font-data);
+      font-size: 1.9rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      letter-spacing: -.01em;
+      transition: color .3s;
+    }
+    .stat-card.profit .stat-value { color: var(--profit); }
+    .stat-card.loss   .stat-value { color: var(--loss); }
+    .stat-card.net    .stat-value { color: var(--gold); }
+    .stat-card.net .stat-value.negative { color: var(--loss); }
+
+    /* ── Section panels ──────────────────────────────────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--panel);
+    }
+    .panel-title {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      color: var(--sub);
+    }
+    .panel-actions { display: flex; gap: 8px; align-items: center; }
+    .badge {
+      font-family: var(--font-data);
+      font-size: .68rem;
+      padding: 2px 7px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--sub);
+    }
+
+    /* ── Form ────────────────────────────────────────────────────────────────── */
+    .form-body {
+      padding: 18px 18px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .field label {
+      font-size: .68rem;
+      font-weight: 600;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--sub);
+    }
+    .field select,
+    .field input {
+      height: 36px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      padding: 0 10px;
+      font-size: .875rem;
+      font-family: var(--font-data);
+      outline: none;
+      transition: border-color .15s;
+      -webkit-appearance: none;
+    }
+    .field select {
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237f8ea3'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      cursor: pointer;
+    }
+    .field select:focus,
+    .field input:focus { border-color: var(--accent); }
+    .field.grow { flex: 1; min-width: 130px; }
     .field.grow input { width: 100%; }
-    .field.sm input { width: 90px; }
-    .btn { padding: 9px 20px; border: none; border-radius: 6px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
-    .btn:hover { opacity: .85; }
-    .btn:disabled { opacity: .4; cursor: not-allowed; }
-    .btn-log   { background: var(--accent); color: #fff; }
-    .btn-ghost { background: var(--border); color: var(--sub); font-size: .82rem; }
-    .hint { margin-top: 10px; font-size: .82rem; color: var(--red); min-height: 1.2em; }
+    .field.w-action select { width: 90px; }
+    .field.w-qty input    { width: 84px; }
+    .field.w-price input  { width: 100px; }
 
-    /* Tables */
-    .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .table-top  { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); gap: 8px; }
-    .table-top h2 { font-size: 1rem; font-weight: 600; }
-    .table-top-right { display: flex; gap: 8px; align-items: center; }
-    .badge { background: var(--border); color: var(--sub); font-size: .75rem; padding: 2px 8px; border-radius: 20px; }
-    .btn-sm { padding: 5px 12px; font-size: .78rem; }
+    .btn-log {
+      height: 36px;
+      padding: 0 20px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: var(--radius);
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      transition: opacity .15s, box-shadow .15s;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+    .btn-log:hover  { box-shadow: 0 0 14px var(--accent-glow); }
+    .btn-log:disabled { opacity: .4; cursor: not-allowed; }
 
-    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
-    thead { background: rgba(255,255,255,.03); }
-    th { padding: 10px 16px; text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; white-space: nowrap; }
-    td { padding: 10px 16px; border-top: 1px solid var(--border); vertical-align: middle; }
+    .btn-ghost {
+      height: 26px;
+      padding: 0 10px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--sub);
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-ghost:hover { border-color: var(--border-hi); color: var(--text); }
+
+    .form-hint {
+      padding: 0 18px 12px;
+      font-size: .78rem;
+      color: var(--loss);
+      min-height: 1.4em;
+    }
+
+    /* ── Tables ──────────────────────────────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .82rem;
+    }
+    thead { background: var(--panel); }
+    th {
+      padding: 9px 14px;
+      text-align: left;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      color: var(--sub);
+      white-space: nowrap;
+    }
+    td {
+      padding: 9px 14px;
+      border-top: 1px solid var(--border);
+      font-size: .82rem;
+      vertical-align: middle;
+    }
+    td.mono {
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+    }
     tr:hover td { background: rgba(255,255,255,.02); }
 
-    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .72rem; font-weight: 700; text-transform: uppercase; }
-    .tag-buy  { background: rgba(34,197,94,.15); color: var(--green); }
-    .tag-sell { background: rgba(239,68,68,.15);  color: var(--red); }
-    .pos { color: var(--green); font-weight: 600; }
-    .neg { color: var(--red);   font-weight: 600; }
-    .dim { color: var(--muted); }
+    .tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-family: var(--font-data);
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+    }
+    .tag-buy  { background: var(--tag-buy-bg);  color: var(--profit); }
+    .tag-sell { background: var(--tag-sell-bg); color: var(--loss); }
 
-    .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: .85rem; line-height: 1; }
-    .del-btn:hover { background: rgba(239,68,68,.15); color: var(--red); }
+    .pos { color: var(--profit); font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+    .neg { color: var(--loss);   font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+    .dim { color: var(--sub); }
 
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .empty   { padding: 32px 20px; text-align: center; color: var(--muted); font-size: .875rem; }
+    .del-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: .8rem;
+      line-height: 1;
+      transition: color .15s, background .15s;
+    }
+    .del-btn:hover { background: var(--tag-sell-bg); color: var(--loss); }
 
-    /* Toast */
+    .empty {
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--sub);
+      font-size: .82rem;
+    }
+
+    /* ── Progress bar for inventory value ────────────────────────────────────── */
+    .val-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .val-bar {
+      flex: 1;
+      height: 3px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      min-width: 40px;
+    }
+    .val-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      transition: width .4s ease;
+    }
+    .val-num {
+      font-family: var(--font-data);
+      font-variant-numeric: tabular-nums;
+      font-size: .78rem;
+      color: var(--sub);
+      white-space: nowrap;
+    }
+
+    /* ── Toast ───────────────────────────────────────────────────────────────── */
     #toast {
-      position: fixed; bottom: 24px; right: 24px; max-width: 340px;
-      background: var(--surface); border: 1px solid var(--border);
-      color: var(--text); padding: 12px 18px; border-radius: var(--radius);
-      font-size: .875rem; transform: translateY(80px); opacity: 0;
-      transition: all .25s ease; z-index: 99; pointer-events: none;
+      position: fixed;
+      bottom: 24px; right: 24px;
+      max-width: 340px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: .82rem;
+      line-height: 1.45;
+      transform: translateY(16px);
+      opacity: 0;
+      transition: transform .22s ease, opacity .22s ease;
+      z-index: 100;
+      pointer-events: none;
     }
     #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.toast-loss { border-left-color: var(--loss); }
 
-    @media (max-width: 700px) {
-      .cards { grid-template-columns: 1fr; }
+    /* ── Responsive ──────────────────────────────────────────────────────────── */
+    @media (max-width: 740px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stats-row .stat-card:last-child { grid-column: span 2; }
       .two-col { grid-template-columns: 1fr; }
-      .form-row { flex-direction: column; }
-      .field.sm input { width: 100%; }
+      .form-body { flex-direction: column; }
+      .field.w-qty input,
+      .field.w-price input,
+      .field.w-action select { width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .stats-row .stat-card:last-child { grid-column: span 1; }
+      .mod-sub { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <span class="logo">🍩</span>
-  <div>
-    <h1>Donut SMP Jamble Mod</h1>
-    <p>Track your auction-house flips &amp; profit/loss</p>
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-left">
+    <span class="mod-logo">🍩</span>
+    <div class="mod-wordmark">
+      <span class="mod-name">Jamble Mod</span>
+      <span class="mod-sub">Donut SMP</span>
+    </div>
+    <div class="header-divider"></div>
+    <div class="status-dot"></div>
+    <span class="status-label">Active</span>
+  </div>
+  <div class="header-right">
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">☀</button>
+    <button class="autopay-pill" id="autopayBtn" onclick="toggleAutoPay()" title="Press ж to toggle">
+      <span class="autopay-indicator"></span>
+      <span>Auto Pay</span>
+      <span class="keycap">ж</span>
+      <span id="autopayLabel" style="font-family:var(--font-data)">OFF</span>
+    </button>
   </div>
 </header>
 
-<main>
+<!-- ── Main ────────────────────────────────────────────────────────────────── -->
+<div class="main">
 
-  <div class="cards">
-    <div class="card profit"><div class="label">Total Profit</div><div class="value" id="totalProfit">—</div></div>
-    <div class="card loss">  <div class="label">Total Loss</div>  <div class="value" id="totalLoss">—</div></div>
-    <div class="card net">   <div class="label">Net P&amp;L</div> <div class="value" id="netPnl">—</div></div>
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card profit">
+      <div class="stat-label">Total Profit</div>
+      <div class="stat-value" id="totalProfit">—</div>
+    </div>
+    <div class="stat-card loss">
+      <div class="stat-label">Total Loss</div>
+      <div class="stat-value" id="totalLoss">—</div>
+    </div>
+    <div class="stat-card net">
+      <div class="stat-label">Net P&amp;L</div>
+      <div class="stat-value" id="netPnl">—</div>
+    </div>
   </div>
 
-  <div class="form-card">
-    <h2>Log a Trade</h2>
-    <div class="form-row">
-      <div class="field">
+  <!-- Log trade -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">Log Trade</span>
+      <span style="font-size:.7rem;color:var(--sub)">Enter to confirm</span>
+    </div>
+    <div class="form-body">
+      <div class="field w-action">
         <label>Action</label>
         <select id="action">
           <option value="BUY">BUY</option>
           <option value="SELL">SELL</option>
         </select>
       </div>
-      <div class="field sm">
+      <div class="field w-qty">
         <label>Qty</label>
         <input type="number" id="qty" placeholder="5" min="0.01" step="any">
       </div>
@@ -143,44 +604,77 @@
         <input type="text" id="item" placeholder="Spawner" autocomplete="off" list="item-suggestions">
         <datalist id="item-suggestions"></datalist>
       </div>
-      <div class="field sm">
+      <div class="field w-price">
         <label>Price each</label>
         <input type="number" id="price" placeholder="64" min="0" step="any">
       </div>
-      <button class="btn btn-log" id="logBtn" onclick="logTrade()">Log</button>
+      <button class="btn-log" id="logBtn" onclick="logTrade()">Log</button>
     </div>
-    <p class="hint" id="hint"></p>
+    <p class="form-hint" id="hint"></p>
   </div>
 
+  <!-- Tables -->
   <div class="two-col">
 
-    <div class="table-card">
-      <div class="table-top">
-        <h2>Trade History</h2>
-        <div class="table-top-right">
-          <span class="badge" id="tradeCount">0 trades</span>
-          <button class="btn btn-ghost btn-sm" onclick="exportCsv()">Export CSV</button>
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Trade History</span>
+        <div class="panel-actions">
+          <span class="badge" id="tradeCount">0</span>
+          <button class="btn-ghost" onclick="exportCsv()">Export CSV</button>
         </div>
       </div>
-      <div id="tradeTableWrap"><p class="empty">No trades yet — log one above.</p></div>
+      <div id="tradeTableWrap">
+        <p class="empty">No trades yet — log one above.</p>
+      </div>
     </div>
 
-    <div class="table-card">
-      <div class="table-top">
-        <h2>Inventory</h2>
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Inventory</span>
         <span class="badge" id="invCount">0 items</span>
       </div>
-      <div id="invTableWrap"><p class="empty">Nothing held yet.</p></div>
+      <div id="invTableWrap">
+        <p class="empty">Nothing held yet.</p>
+      </div>
     </div>
 
   </div>
 
-</main>
+</div><!-- /main -->
 
 <div id="toast"></div>
 
 <script>
-  // ── API calls ───────────────────────────────────────────────────────────────
+  // ── Theme ────────────────────────────────────────────────────────────────────
+  let theme = localStorage.getItem('jm_theme') || 'dark';
+  applyTheme(theme);
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    document.querySelector('.theme-btn').textContent = t === 'dark' ? '☀' : '☾';
+    localStorage.setItem('jm_theme', t);
+  }
+  function toggleTheme() { theme = theme === 'dark' ? 'light' : 'dark'; applyTheme(theme); }
+
+  // ── Auto Pay ─────────────────────────────────────────────────────────────────
+  let autoPay = false;
+  function toggleAutoPay() {
+    autoPay = !autoPay;
+    const btn = document.getElementById('autopayBtn');
+    const lbl = document.getElementById('autopayLabel');
+    btn.classList.toggle('on', autoPay);
+    lbl.textContent = autoPay ? 'ON' : 'OFF';
+    toast(autoPay ? '⚡ Auto Pay enabled' : '⛔ Auto Pay disabled', autoPay ? '' : 'loss');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ж' || e.key === 'Ж') {
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT')) return;
+      toggleAutoPay();
+    }
+  });
+
+  // ── API ──────────────────────────────────────────────────────────────────────
   const api = (path, opts) => fetch(path, opts).then(r => r.json());
 
   async function loadAll() {
@@ -200,31 +694,29 @@
     const item   = document.getElementById('item').value.trim();
     const qty    = parseFloat(document.getElementById('qty').value);
     const price  = parseFloat(document.getElementById('price').value);
+    const hint   = document.getElementById('hint');
 
-    if (!item || isNaN(qty) || qty <= 0 || isNaN(price) || price < 0) {
-      document.getElementById('hint').textContent = 'Fill in item, qty, and price.';
-      return;
-    }
-    document.getElementById('hint').textContent = '';
+    if (!item)                      { hint.textContent = 'Item name is required.'; return; }
+    if (isNaN(qty) || qty <= 0)     { hint.textContent = 'Qty must be a positive number.'; return; }
+    if (isNaN(price) || price < 0)  { hint.textContent = 'Price must be 0 or more.'; return; }
+    hint.textContent = '';
 
     const btn = document.getElementById('logBtn');
     btn.disabled = true;
-
     const res = await api('/api/trades', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, item, qty, price }),
     });
-
     btn.disabled = false;
 
-    if (res.error) { document.getElementById('hint').textContent = res.error; return; }
+    if (res.error) { hint.textContent = res.error; return; }
 
-    ['qty', 'item', 'price'].forEach(id => document.getElementById(id).value = '');
+    ['qty','item','price'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('item').focus();
     toast(action === 'BUY'
-      ? `✅ Bought ${qty} ${item} @ ${price}`
-      : `✅ Sold ${qty} ${item} @ ${price}`);
+      ? `Bought ${qty}× ${item} @ ${fmtD(price)}`
+      : `Sold ${qty}× ${item} @ ${fmtD(price)}`);
     loadAll();
   }
 
@@ -236,73 +728,94 @@
 
   function exportCsv() { window.location = '/api/export'; }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
-  function fmt(n)    { return Math.round(n).toLocaleString(); }
-  function fmtD(n)   { return (+n).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+  // ── Format ───────────────────────────────────────────────────────────────────
+  function fmt(n)  { return Math.round(n).toLocaleString(); }
+  function fmtD(n) { return (+n).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
+  function sign(n) { return n >= 0 ? '+' : ''; }
 
+  // ── Render ───────────────────────────────────────────────────────────────────
   function renderSummary({ totalProfit, totalLoss, netPnl }) {
-    document.getElementById('totalProfit').textContent = fmt(totalProfit);
+    document.getElementById('totalProfit').textContent = '+' + fmt(totalProfit);
     document.getElementById('totalLoss').textContent   = fmt(totalLoss);
-    const el = document.getElementById('netPnl');
-    el.textContent  = (netPnl >= 0 ? '+' : '') + fmt(netPnl);
-    el.style.color  = netPnl >= 0 ? 'var(--green)' : 'var(--red)';
+    const netEl = document.getElementById('netPnl');
+    netEl.textContent = sign(netPnl) + fmt(netPnl);
+    netEl.classList.toggle('negative', netPnl < 0);
   }
 
   function renderTrades(trades) {
     const wrap = document.getElementById('tradeTableWrap');
-    document.getElementById('tradeCount').textContent = `${trades.length} trade${trades.length !== 1 ? 's' : ''}`;
-    if (!trades.length) { wrap.innerHTML = '<p class="empty">No trades yet — log one above.</p>'; return; }
-
-    wrap.innerHTML = `<table>
-      <thead><tr><th>Date</th><th>Action</th><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Profit</th><th></th></tr></thead>
+    document.getElementById('tradeCount').textContent = trades.length;
+    if (!trades.length) {
+      wrap.innerHTML = '<p class="empty">No trades yet — log one above.</p>';
+      return;
+    }
+    wrap.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr>
+        <th>Date</th><th>Action</th><th>Item</th>
+        <th>Qty</th><th>Price</th><th>Total</th><th>Profit</th><th></th>
+      </tr></thead>
       <tbody>${trades.map(t => `<tr>
-        <td class="dim" style="font-size:.8rem">${t.date}</td>
+        <td class="dim" style="font-size:.72rem;white-space:nowrap">${t.date}</td>
         <td><span class="tag tag-${t.action.toLowerCase()}">${t.action}</span></td>
         <td>${t.item}</td>
-        <td>${fmtD(t.qty)}</td>
-        <td>${fmtD(t.price)}</td>
-        <td>${fmt(t.total)}</td>
+        <td class="mono">${fmtD(t.qty)}</td>
+        <td class="mono">${fmtD(t.price)}</td>
+        <td class="mono">${fmt(t.total)}</td>
         <td>${t.profit != null
-          ? `<span class="${t.profit >= 0 ? 'pos' : 'neg'}">${t.profit >= 0 ? '+' : ''}${fmt(t.profit)}</span>`
+          ? `<span class="${t.profit >= 0 ? 'pos' : 'neg'}">${sign(t.profit)}${fmt(t.profit)}</span>`
           : '<span class="dim">—</span>'}</td>
         <td><button class="del-btn" onclick="deleteTrade(${t.id})" title="Delete">✕</button></td>
       </tr>`).join('')}</tbody>
-    </table>`;
+    </table></div>`;
   }
 
   function renderInventory(inv) {
     const wrap = document.getElementById('invTableWrap');
-    document.getElementById('invCount').textContent = `${inv.length} item${inv.length !== 1 ? 's' : ''}`;
-    if (!inv.length) { wrap.innerHTML = '<p class="empty">Nothing held yet.</p>'; return; }
-
-    wrap.innerHTML = `<table>
-      <thead><tr><th>Item</th><th>Qty Held</th><th>Avg Cost</th><th>Total Value</th></tr></thead>
-      <tbody>${inv.map(r => `<tr>
-        <td>${r.item}</td>
-        <td>${fmtD(r.qty)}</td>
-        <td>${fmtD(r.avg_cost)}</td>
-        <td class="dim">${fmt(r.qty * r.avg_cost)}</td>
-      </tr>`).join('')}</tbody>
-    </table>`;
+    document.getElementById('invCount').textContent = inv.length + ' item' + (inv.length !== 1 ? 's' : '');
+    if (!inv.length) {
+      wrap.innerHTML = '<p class="empty">Nothing held yet.</p>';
+      return;
+    }
+    const maxVal = Math.max(...inv.map(r => r.qty * r.avg_cost), 1);
+    wrap.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Item</th><th>Qty</th><th>Avg Cost</th><th>Value</th></tr></thead>
+      <tbody>${inv.map(r => {
+        const val = r.qty * r.avg_cost;
+        const pct = Math.round((val / maxVal) * 100);
+        return `<tr>
+          <td>${r.item}</td>
+          <td class="mono">${fmtD(r.qty)}</td>
+          <td class="mono">${fmtD(r.avg_cost)}</td>
+          <td>
+            <div class="val-bar-wrap">
+              <div class="val-bar"><div class="val-bar-fill" style="width:${pct}%"></div></div>
+              <span class="val-num">${fmt(val)}</span>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
   }
 
   function populateSuggestions(inv) {
-    const dl = document.getElementById('item-suggestions');
-    dl.innerHTML = inv.map(r => `<option value="${r.item}">`).join('');
+    document.getElementById('item-suggestions').innerHTML =
+      inv.map(r => `<option value="${r.item}">`).join('');
   }
 
-  // ── Toast ───────────────────────────────────────────────────────────────────
-  function toast(msg, ms = 3000) {
+  // ── Toast ────────────────────────────────────────────────────────────────────
+  function toast(msg, type = '') {
     const el = document.getElementById('toast');
     el.textContent = msg;
-    el.classList.add('show');
+    el.className = 'show' + (type ? ' toast-' + type : '');
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => el.classList.remove('show'), ms);
+    toast._t = setTimeout(() => el.classList.remove('show'), 3200);
   }
 
-  // ── Enter key to log ────────────────────────────────────────────────────────
+  // ── Enter key ────────────────────────────────────────────────────────────────
   ['qty','item','price'].forEach(id =>
-    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') logTrade(); })
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') logTrade();
+    })
   );
 
   loadAll();

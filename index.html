@@ -82,138 +82,57 @@
     button { font-family: inherit; cursor: pointer; }
     input, select { font-family: inherit; }
 
-    /* ── Header ─────────────────────────────────────────────────────────────── */
-    .header {
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      padding: 0 28px;
-      height: 52px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      position: sticky;
-      top: 0;
+    /* Auto Pay chip — floating top-right */
+    .autopay-chip {
+      position: fixed;
+      top: 14px;
+      right: 18px;
       z-index: 50;
-    }
-    .header-left {
       display: flex;
       align-items: center;
-      gap: 14px;
-    }
-    .mod-logo {
-      font-size: 1.35rem;
-      line-height: 1;
-    }
-    .mod-wordmark {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-    .mod-name {
-      font-family: var(--font-data);
-      font-size: .78rem;
-      font-weight: 700;
-      letter-spacing: .16em;
-      text-transform: uppercase;
+      gap: 7px;
+      padding: 0 10px;
+      height: 28px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--accent-dim);
       color: var(--accent);
-      line-height: 1.1;
-    }
-    .mod-sub {
+      box-shadow: 0 0 10px var(--accent-glow);
       font-size: .68rem;
-      color: var(--sub);
-      letter-spacing: .06em;
+      font-weight: 700;
+      letter-spacing: .08em;
       text-transform: uppercase;
+      cursor: pointer;
+      transition: box-shadow .2s, border-color .2s, color .2s, background .2s;
+      user-select: none;
     }
-    .header-divider {
-      width: 1px;
-      height: 24px;
-      background: var(--border);
+    .autopay-chip.off {
+      border-color: var(--border);
+      background: none;
+      color: var(--sub);
+      box-shadow: none;
     }
-    .status-dot {
+    .autopay-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
       background: var(--accent);
-      box-shadow: 0 0 6px var(--accent);
-      animation: pulse 2.4s ease-in-out infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    .status-label {
-      font-size: .72rem;
-      color: var(--sub);
-      letter-spacing: .04em;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .theme-btn {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--sub);
-      width: 30px;
-      height: 30px;
-      border-radius: var(--radius);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: .85rem;
-      transition: border-color .15s, color .15s;
-    }
-    .theme-btn:hover { border-color: var(--border-hi); color: var(--text); }
-
-    /* Auto Pay Toggle */
-    .autopay-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0 12px;
-      height: 30px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: none;
-      color: var(--sub);
-      font-size: .72rem;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      transition: border-color .2s, color .2s, box-shadow .2s, background .2s;
-      user-select: none;
-    }
-    .autopay-pill:hover { border-color: var(--border-hi); }
-    .autopay-pill.on {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-dim);
-      box-shadow: 0 0 12px var(--accent-glow);
-    }
-    .autopay-indicator {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--muted);
       transition: background .2s, box-shadow .2s;
     }
-    .autopay-pill.on .autopay-indicator {
-      background: var(--accent);
-      box-shadow: 0 0 6px var(--accent);
-    }
+    .autopay-chip.off .autopay-dot { background: var(--muted); }
     .keycap {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0 5px;
-      height: 18px;
-      min-width: 18px;
+      padding: 0 4px;
+      height: 16px;
+      min-width: 16px;
       background: var(--panel);
       border: 1px solid var(--border-hi);
       border-bottom-width: 2px;
       border-radius: 3px;
       font-family: var(--font-data);
-      font-size: .72rem;
+      font-size: .65rem;
       color: var(--sub);
       letter-spacing: 0;
     }
@@ -539,28 +458,12 @@
 </head>
 <body>
 
-<!-- ── Header ──────────────────────────────────────────────────────────────── -->
-<header class="header">
-  <div class="header-left">
-    <span class="mod-logo">🍩</span>
-    <div class="mod-wordmark">
-      <span class="mod-name">Jamble Mod</span>
-      <span class="mod-sub">Donut SMP</span>
-    </div>
-    <div class="header-divider"></div>
-    <div class="status-dot"></div>
-    <span class="status-label">Active</span>
-  </div>
-  <div class="header-right">
-    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">☀</button>
-    <button class="autopay-pill" id="autopayBtn" onclick="toggleAutoPay()" title="Press ж to toggle">
-      <span class="autopay-indicator"></span>
-      <span>Auto Pay</span>
-      <span class="keycap">ж</span>
-      <span id="autopayLabel" style="font-family:var(--font-data)">OFF</span>
-    </button>
-  </div>
-</header>
+<button class="autopay-chip" id="autopayBtn" onclick="toggleAutoPay()" title="Press ж to toggle Auto Pay">
+  <span class="autopay-dot"></span>
+  Auto Pay
+  <span class="keycap">ж</span>
+  <span id="autopayLabel" style="font-family:var(--font-data)">ON</span>
+</button>
 
 <!-- ── Main ────────────────────────────────────────────────────────────────── -->
 <div class="main">
@@ -646,26 +549,20 @@
 <div id="toast"></div>
 
 <script>
-  // ── Theme ────────────────────────────────────────────────────────────────────
-  let theme = localStorage.getItem('jm_theme') || 'dark';
-  applyTheme(theme);
-  function applyTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    document.querySelector('.theme-btn').textContent = t === 'dark' ? '☀' : '☾';
-    localStorage.setItem('jm_theme', t);
-  }
-  function toggleTheme() { theme = theme === 'dark' ? 'light' : 'dark'; applyTheme(theme); }
-
-  // ── Auto Pay ─────────────────────────────────────────────────────────────────
-  let autoPay = false;
-  function toggleAutoPay() {
-    autoPay = !autoPay;
+  // ── Auto Pay (ON by default) ─────────────────────────────────────────────────
+  let autoPay = true;
+  function applyAutoPay() {
     const btn = document.getElementById('autopayBtn');
     const lbl = document.getElementById('autopayLabel');
-    btn.classList.toggle('on', autoPay);
+    btn.classList.toggle('off', !autoPay);
     lbl.textContent = autoPay ? 'ON' : 'OFF';
+  }
+  function toggleAutoPay() {
+    autoPay = !autoPay;
+    applyAutoPay();
     toast(autoPay ? '⚡ Auto Pay enabled' : '⛔ Auto Pay disabled', autoPay ? '' : 'loss');
   }
+  applyAutoPay();
   document.addEventListener('keydown', e => {
     if (e.key === 'ж' || e.key === 'Ж') {
       const active = document.activeElement;
